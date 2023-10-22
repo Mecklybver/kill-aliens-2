@@ -3,6 +3,8 @@ class Enemy {
     this.game = game;
     this.x = 0;
     this.y = 0;
+    this.Initialx = 0;
+    this.Initialy = 0;
     this.radius = 40;
     this.width = this.radius * 2;
     this.height = this.radius * 2;
@@ -36,6 +38,8 @@ class Enemy {
     const aim = this.game.calcAim(this, this.game.planet);
     this.speedX = -aim[0];
     this.speedY = -aim[1];
+    this.Initialx = this.x;
+    this.Initialy = this.y;
   }
   reset() {
     this.frameX = 0;
@@ -47,7 +51,13 @@ class Enemy {
       ctx.translate(this.x, this.y);
       ctx.beginPath();
       ctx.lineWidth = 4;
-      if (this.game.debug) ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+      if (this.game.debug) {
+        ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+        ctx.beginPath();
+        ctx.moveTo(this.Initialx - this.x,this.Initialy - this.y);
+        ctx.lineTo(this.game.planet.x - this.x, this.game.planet.y - this.y);
+        ctx.stroke()
+      }
       ctx.rotate(this.rotation);
       ctx.drawImage(
         this.img,
@@ -55,8 +65,8 @@ class Enemy {
         this.frameY * this.heightFrame,
         this.widthFrame,
         this.heightFrame,
-        -this.radius,
-        -this.radius,
+        -this.radius ,
+        -this.radius ,
         this.radius * 2,
         this.radius * 2
       );
@@ -68,39 +78,35 @@ class Enemy {
     this.wave += 1;
     this.rotation += this.speedRotation;
     if (!this.free) {
-      this.x += this.speedX;
-      this.y += this.speedY;
+      this.x += this.speedX   ;
+      this.y += this.speedY  + Math.sin(0.2*this.wave) * 2 ;
       // check collision enemy/planet
       if (this.game.checkCollision(this, this.game.planet)) {
-        this.explosion(deltaTime);
+        this.collided = true;
       }
       // check collision enemy/player
       if (this.game.checkCollision(this, this.game.player)) {
-        this.explosion(deltaTime);
+        this.collided = true
       }
       // check collision enemy / projectiles
       this.game.projectilePool.forEach((projectile) => {
         if (this.game.checkCollision(this, projectile)) {
           projectile.reset();
 
-          this.explosion(deltaTime);
+          this.collided = true;
         }
       });
+      if (this.collided && this.timer >= this.interval){
+        this.frameX++
+        this.timer = 0;
+        if(this.frameX >= this.maxFrameX){
+          this.collided = false;
+           this.reset();}
+      }
     }
+    this.timer += deltaTime
   }
-  explosion(deltaTime) {
-    console.log(deltaTime);
-    this.timer += deltaTime;
 
-    if (this.timer >= this.interval) {
-      this.timer = 0;
-      this.frameX++;
-    }
-    if (this.frameX >= this.maxFrameX) {
-      this.reset();
-      this.frameX = 0;
-    }
-  }
 }
 
 class Projectile {
@@ -273,7 +279,6 @@ class Game {
     });
   }
   render(ctx, deltaTime) {
-    // console.log(this.enemyPool);
 
     this.planet.render(ctx);
     this.player.draw(ctx);
