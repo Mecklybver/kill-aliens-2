@@ -13,7 +13,6 @@ class Enemy {
     this.free = true;
     this.timer = 0;
     this.interval = 120;
- 
   }
   start() {
     this.free = false;
@@ -27,8 +26,8 @@ class Enemy {
       this.y = Math.random() * this.game.height + this.radius;
     }
     const aim = this.game.calcAim(this, this.game.planet);
-    this.speedX = -aim[0] 
-    this.speedY = -aim[1] 
+    this.speedX = -aim[0];
+    this.speedY = -aim[1];
     this.Initialx = this.x;
     this.Initialy = this.y;
   }
@@ -74,7 +73,7 @@ class Enemy {
     this.rotation += this.speedRotation;
     if (!this.free) {
       this.x += this.speedX;
-      this.y += this.speedY + Math.sin(0.1 * this.wave) * 1.3;
+      this.y += this.speedY + Math.cos(0.3 * this.wave) * 1.3;
       // check collision enemy/planet
       if (this.game.checkCollision(this, this.game.planet)) {
         this.collided = true;
@@ -104,9 +103,9 @@ class Enemy {
   }
 }
 
-class Asteroid extends Enemy{
-  constructor(game){
-    super(game)
+class Asteroid extends Enemy {
+  constructor(game) {
+    super(game);
     this.widthFrame = 80;
     this.heightFrame = 80;
     this.wave = 0;
@@ -130,6 +129,7 @@ class Projectile {
     this.speedX = Math.random() + 0.2;
     this.speedY = Math.random() + 0.2;
     this.speedModifier = 5;
+    this.trace = [];
   }
   start(x, y, speedX, speedY) {
     this.free = false;
@@ -180,9 +180,9 @@ class Planet {
   }
 
   render(ctx) {
-    this.wave += 1
-    this.y += Math.cos(0.5*this.wave) * 0.1;
-    this.x += Math.sin(0.5*this.wave) * 0.1;
+    this.wave += 1;
+    this.y += Math.cos(0.5 * this.wave) * 0.1;
+    this.x += Math.sin(0.5 * this.wave) * 0.1;
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.rotation);
@@ -267,6 +267,7 @@ class Game {
     this.enemyPool[0].start();
     this.enemyTimer = 0;
     this.enemyInterval = 1000;
+    console.log(this.projectilePool, this.enemyPool);
 
     this.mouse = {
       x: 0,
@@ -309,18 +310,40 @@ class Game {
       projectile.draw(ctx);
       projectile.update();
     });
-    this.enemyPool.forEach((enemy, index) => {
+
+    //   for (let i = 0; i < this.enemyPool.length; i++) {
+    //     for (let j = i + 1; j < this.enemyPool.length; j++) {
+    //       if (this.checkCollision(this.enemyPool[j], this.enemyPool[i])){
+    //         this.enemyPool[j].collided = true;
+    //         this.enemyPool[i].collided = true;
+    //       }
+
+    //   }
+    // }
+
+    this.enemyPool.forEach((enemy, i) => {
       enemy.draw(ctx);
       enemy.update(deltaTime);
-      
+
+      for (let j = i + 1; j < this.enemyPool.length; j++) {
+        if (this.checkCollision(enemy, this.enemyPool[j])) {
+          enemy.collided = true;
+          this.enemyPool[j].collided = true;
+        }
+      }
     });
+
     // periodically activate an enemy
     if (this.enemyTimer < this.enemyInterval) {
       this.enemyTimer += deltaTime;
     } else {
       this.enemyTimer = 0;
-      const enemy = this.getEnemy();
-      if (enemy) enemy.start();
+      const randomNumberOfEnemies = Math.floor(Math.random() * 3) + 1; // Generates a random number between 1 and 3
+    
+      for (let i = 0; i < randomNumberOfEnemies; i++) {
+        const enemy = this.getEnemy();
+        if (enemy) enemy.start();
+      }
     }
 
     ctx.save();
@@ -394,7 +417,7 @@ addEventListener("load", () => {
     lastTime = timeStamp;
     requestAnimationFrame(animate);
     // ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
+
     ctx.save();
     ctx.globalAlpha = 0.3;
     ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
