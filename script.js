@@ -13,16 +13,7 @@ class Enemy {
     this.free = true;
     this.timer = 0;
     this.interval = 120;
-    this.widthFrame = 80;
-    this.heightFrame = 80;
-    this.wave = 0;
-    this.frameX = 0;
-    this.maxFrameX = 7;
-    this.frameY = Math.floor(Math.random() * 4);
-    this.rotation = 0;
-    this.speedRotation = Math.random() * 0.05 - 0.1;
-    this.img = document.getElementById("asteroid");
-    this.collided = false;
+ 
   }
   start() {
     this.free = false;
@@ -36,8 +27,8 @@ class Enemy {
       this.y = Math.random() * this.game.height + this.radius;
     }
     const aim = this.game.calcAim(this, this.game.planet);
-    this.speedX = -aim[0];
-    this.speedY = -aim[1];
+    this.speedX = -aim[0] 
+    this.speedY = -aim[1] 
     this.Initialx = this.x;
     this.Initialy = this.y;
   }
@@ -54,19 +45,23 @@ class Enemy {
       if (this.game.debug) {
         ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
         ctx.beginPath();
-        ctx.moveTo(this.Initialx - this.x,this.Initialy - this.y);
+        ctx.moveTo(this.Initialx - this.x, this.Initialy - this.y);
         ctx.lineTo(this.game.planet.x - this.x, this.game.planet.y - this.y);
-        ctx.stroke()
+        ctx.stroke();
       }
       ctx.rotate(this.rotation);
+      if (this.collided) {
+        if (this.game.shadow) ctx.shadowColor = "red";
+        if (this.game.shadow) ctx.shadowBlur = 25;
+      }
       ctx.drawImage(
         this.img,
         this.frameX * this.widthFrame,
         this.frameY * this.heightFrame,
         this.widthFrame,
         this.heightFrame,
-        -this.radius ,
-        -this.radius ,
+        -this.radius,
+        -this.radius,
         this.radius * 2,
         this.radius * 2
       );
@@ -78,35 +73,51 @@ class Enemy {
     this.wave += 1;
     this.rotation += this.speedRotation;
     if (!this.free) {
-      this.x += this.speedX   ;
-      this.y += this.speedY  + Math.sin(0.2*this.wave) * 2 ;
+      this.x += this.speedX;
+      this.y += this.speedY + Math.sin(0.1 * this.wave) * 1.3;
       // check collision enemy/planet
       if (this.game.checkCollision(this, this.game.planet)) {
         this.collided = true;
       }
       // check collision enemy/player
       if (this.game.checkCollision(this, this.game.player)) {
-        this.collided = true
+        this.collided = true;
       }
       // check collision enemy / projectiles
       this.game.projectilePool.forEach((projectile) => {
-        if (this.game.checkCollision(this, projectile)) {
+        if (!this.collided && this.game.checkCollision(this, projectile)) {
           projectile.reset();
 
           this.collided = true;
         }
       });
-      if (this.collided && this.timer >= this.interval){
-        this.frameX++
+      if (this.collided && this.timer >= this.interval) {
+        this.frameX++;
         this.timer = 0;
-        if(this.frameX >= this.maxFrameX){
+        if (this.frameX >= this.maxFrameX) {
           this.collided = false;
-           this.reset();}
+          this.reset();
+        }
       }
     }
-    this.timer += deltaTime
+    this.timer += deltaTime;
   }
+}
 
+class Asteroid extends Enemy{
+  constructor(game){
+    super(game)
+    this.widthFrame = 80;
+    this.heightFrame = 80;
+    this.wave = 0;
+    this.frameX = 0;
+    this.maxFrameX = 7;
+    this.frameY = Math.floor(Math.random() * 4);
+    this.rotation = 0;
+    this.speedRotation = Math.random() * 0.05 - 0.1;
+    this.img = document.getElementById("asteroid");
+    this.collided = false;
+  }
 }
 
 class Projectile {
@@ -116,8 +127,8 @@ class Projectile {
     this.y = 0;
     this.radius = 5;
     this.free = true;
-    this.speedX = 1;
-    this.speedY = 1;
+    this.speedX = Math.random() + 0.2;
+    this.speedY = Math.random() + 0.2;
     this.speedModifier = 5;
   }
   start(x, y, speedX, speedY) {
@@ -165,9 +176,13 @@ class Planet {
     this.img = document.getElementById("planet");
     this.rotation = 0;
     this.rotationSpeed = 0.0007;
+    this.wave = 0;
   }
 
   render(ctx) {
+    this.wave += 1
+    this.y += Math.cos(0.5*this.wave) * 0.1;
+    this.x += Math.sin(0.5*this.wave) * 0.1;
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.rotation);
@@ -198,6 +213,8 @@ class Player {
     ctx.beginPath();
     if (this.game.debug) ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
     ctx.rotate(this.angle);
+    if (this.game.shadow) ctx.shadowColor = "blue";
+    if (this.game.shadow) ctx.shadowBlur = 5;
     ctx.drawImage(
       this.img,
       -this.radius + Math.sin(0.1 * this.wave),
@@ -240,6 +257,7 @@ class Game {
     this.planet = new Planet(this);
     this.player = new Player(this);
     this.debug = false;
+    this.shadow = false;
     this.projectilePool = [];
     this.numberOfProjectiles = 30;
     this.createProjectilePool();
@@ -271,6 +289,11 @@ class Game {
         this.debug = !this.debug;
       }
     });
+    window.addEventListener("keyup", (e) => {
+      if (e.key === "a") {
+        this.shadow = !this.shadow;
+      }
+    });
 
     window.addEventListener("keydown", (e) => {
       if (e.key === " ") {
@@ -279,7 +302,6 @@ class Game {
     });
   }
   render(ctx, deltaTime) {
-
     this.planet.render(ctx);
     this.player.draw(ctx);
     this.player.update();
@@ -287,9 +309,10 @@ class Game {
       projectile.draw(ctx);
       projectile.update();
     });
-    this.enemyPool.forEach((enemy) => {
+    this.enemyPool.forEach((enemy, index) => {
       enemy.draw(ctx);
       enemy.update(deltaTime);
+      
     });
     // periodically activate an enemy
     if (this.enemyTimer < this.enemyInterval) {
@@ -346,7 +369,7 @@ class Game {
 
   createEnemyPool() {
     for (let i = 0; i < this.numberOfEnemies; i++) {
-      this.enemyPool.push(new Enemy(this));
+      this.enemyPool.push(new Asteroid(this));
     }
   }
 
@@ -358,6 +381,7 @@ class Game {
 }
 
 addEventListener("load", () => {
+  const bg = document.getElementById("bg");
   const canvas = document.querySelector("canvas");
   canvas.width = 800;
   canvas.height = 800;
@@ -369,7 +393,12 @@ addEventListener("load", () => {
     const deltaTime = timeStamp - lastTime;
     lastTime = timeStamp;
     requestAnimationFrame(animate);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+    ctx.save();
+    ctx.globalAlpha = 0.3;
+    ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
+    ctx.restore();
     game.render(ctx, deltaTime);
   }
   animate(0);
